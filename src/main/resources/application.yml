@@ -1,0 +1,15 @@
+spring:
+  profiles:
+    active: dev
+  application:
+    name: liparibank
+
+liparibank:
+  bank-code: LPRI-IT
+  max-transfer-amount: 50000.00
+  audit:
+    enabled: true
+
+logging:
+  level:
+    com.lipari: INFO
