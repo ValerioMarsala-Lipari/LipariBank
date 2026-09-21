@@ -1,0 +1,124 @@
+package com.lipari.bank.model;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+public sealed abstract class Account
+    extends FinancialProduct
+    implements Taxable
+    permits CheckingAccount, SavingsAccount {
+
+  private final String iban;
+  private final Customer owner;
+  private final List<Transaction> transactions;
+  private BigDecimal balance;
+
+  protected Account(
+      String id,
+      LocalDate creationDate,
+      String iban,
+      BigDecimal balance,
+      Customer owner
+  ) {
+    super(id, creationDate);
+
+    if (iban == null || iban.isBlank()) {
+      throw new IllegalArgumentException("IBAN cannot be null or blank");
+    }
+
+    if (balance == null || balance.compareTo(BigDecimal.ZERO) < 0) {
+      throw new IllegalArgumentException("Balance cannot be null or negative");
+    }
+
+    if (owner == null) {
+      throw new IllegalArgumentException("Owner cannot be null");
+    }
+
+    this.iban = iban;
+    this.balance = balance;
+    this.owner = owner;
+    this.transactions = new ArrayList<>();
+  }
+
+  public String getIban() {
+    return iban;
+  }
+
+  public BigDecimal getBalance() {
+    return balance;
+  }
+
+  protected void setBalance(BigDecimal balance) {
+    this.balance = balance;
+  }
+
+  public Customer getOwner() {
+    return owner;
+  }
+
+  public void deposit(BigDecimal amount) {
+    validateAmount(amount);
+
+    balance = balance.add(amount);
+
+    transactions.add(
+        new Transaction(
+            TransactionType.DEPOSIT,
+            amount,
+            "Deposit",
+            java.time.LocalDateTime.now()
+        )
+    );
+  }
+
+  public void withdraw(BigDecimal amount) {
+    validateAmount(amount);
+
+    if (amount.compareTo(balance) > 0) {
+      throw new IllegalStateException("Insufficient balance");
+    }
+
+    balance = balance.subtract(amount);
+
+    transactions.add(
+        new Transaction(
+            TransactionType.WITHDRAWAL,
+            amount,
+            "Withdrawal",
+            java.time.LocalDateTime.now()
+        )
+    );
+  }
+
+  public List<Transaction> getTransactions() {
+    return Collections.unmodifiableList(transactions);
+  }
+
+  private void validateAmount(BigDecimal amount) {
+    if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+      throw new IllegalArgumentException(
+          "Amount must be greater than zero"
+      );
+    }
+  }
+
+  protected void addTransaction(Transaction transaction) {
+    if (transaction == null) {
+      throw new IllegalArgumentException("Transaction cannot be null");
+    }
+
+    transactions.add(transaction);
+  }
+
+  @Override
+  public BigDecimal calculateTax() {
+    return calculateTaxAmount();
+  }
+
+  @Override
+  public abstract BigDecimal calculateTaxAmount();
+
+}
