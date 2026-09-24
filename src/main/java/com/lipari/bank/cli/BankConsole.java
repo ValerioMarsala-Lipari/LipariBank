@@ -84,8 +84,9 @@ public class BankConsole {
         ║  4. Preleva                          ║
         ║  5. Bonifico                         ║
         ║  6. Storico transazioni              ║
-        ║  7. Applica interessi (risparmio)    ║
-        ║  8. Processa e classifica conti      ║
+        ║  7. Reportistica                     ║
+        ║  8. Applica interessi (risparmio)    ║
+        ║  9. Processa e classifica conti      ║
         ║  0. Esci                             ║
         ╚══════════════════════════════════════╝""");
     System.out.print("  Scelta: ");
