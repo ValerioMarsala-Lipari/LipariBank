@@ -45,8 +45,9 @@ public class BankConsole {
         case 4 -> makeWithdrawal();
         case 5 -> makeTransfer();
         case 6 -> showTransactions();
-        case 7 -> applyInterestToSavings();
-        case 8 -> processAccounts();
+        case 7 -> configuration();
+        case 8 -> applyInterestToSavings();
+        case 9 -> processAccounts();
         case 0 -> {
           System.out.println("\nArrivederci da LipariBank!");
           running = false;
@@ -84,8 +85,9 @@ public class BankConsole {
         ║  4. Preleva                          ║
         ║  5. Bonifico                         ║
         ║  6. Storico transazioni              ║
-        ║  7. Applica interessi (risparmio)    ║
-        ║  8. Processa e classifica conti      ║
+        ║  7. Configurazione                   ║
+        ║  8. Applica interessi (risparmio)    ║
+        ║  9. Processa e classifica conti      ║
         ║  0. Esci                             ║
         ╚══════════════════════════════════════╝""");
     System.out.print("  Scelta: ");
@@ -228,6 +230,10 @@ public class BankConsole {
     } catch (AccountNotFoundException e) {
       System.out.println("⚠ " + e.getMessage());
     }
+  }
+
+  private void configuration() {
+    System.out.println("\n─── COMING SOON ─────────────────────────────────────────");
   }
 
   private void applyInterestToSavings() {
