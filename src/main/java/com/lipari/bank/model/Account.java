@@ -77,7 +77,7 @@ public sealed abstract class Account extends FinancialProduct implements Taxable
     return Collections.unmodifiableList(transactions);
   }
 
-  private void validateAmount(BigDecimal amount) {
+  protected void validateAmount(BigDecimal amount) {
     if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
       throw new IllegalArgumentException("Amount must be greater than zero");
     }
@@ -117,6 +117,30 @@ public sealed abstract class Account extends FinancialProduct implements Taxable
   @Override
   public int hashCode() {
     return Objects.hash(iban);
+  }
+
+  public void transferOut(BigDecimal amount, String targetIban) {
+    validateTransferOut(amount);
+
+    setBalance(getBalance().subtract(amount));
+
+    addTransaction(new Transaction(TransactionType.TRANSFER, amount, "Transfer to " + targetIban, java.time.LocalDateTime.now()));
+  }
+
+  public void transferIn(BigDecimal amount, String sourceIban) {
+    validateAmount(amount);
+
+    setBalance(getBalance().add(amount));
+
+    addTransaction(new Transaction(TransactionType.TRANSFER, amount, "Transfer from " + sourceIban, java.time.LocalDateTime.now()));
+  }
+
+  protected void validateTransferOut(BigDecimal amount) {
+    validateAmount(amount);
+
+    if (amount.compareTo(getBalance()) > 0) {
+      throw new InsufficientFundsException(getIban(), amount, getBalance());
+    }
   }
 
 }

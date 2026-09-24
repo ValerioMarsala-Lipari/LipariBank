@@ -1,7 +1,6 @@
 package com.lipari.bank.service;
 
 import com.lipari.bank.exception.AccountNotFoundException;
-import com.lipari.bank.exception.InsufficientFundsException;
 import com.lipari.bank.model.Account;
 import com.lipari.bank.repository.AccountRepository;
 
@@ -20,11 +19,7 @@ public class TransferService {
 
     Account target = accountRepository.findByIban(targetIban).orElseThrow(() -> new AccountNotFoundException(targetIban));
 
-    if (source.getBalance().compareTo(amount) < 0) {
-      throw new InsufficientFundsException(source.getIban(), amount, source.getBalance());
-    }
-
-    source.withdraw(amount);
-    target.deposit(amount);
+    source.transferOut(amount, targetIban);
+    target.transferIn(amount, sourceIban);
   }
 }
