@@ -1,5 +1,7 @@
 package com.lipari.bank.model;
 
+import com.lipari.bank.exception.InsufficientFundsException;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -63,7 +65,7 @@ public sealed abstract class Account extends FinancialProduct implements Taxable
     validateAmount(amount);
 
     if (amount.compareTo(balance) > 0) {
-      throw new IllegalStateException("Insufficient balance");
+      throw new InsufficientFundsException(iban, amount, balance);
     }
 
     balance = balance.subtract(amount);
