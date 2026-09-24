@@ -8,13 +8,29 @@ public record TransferCommand(Account source, Account target, BigDecimal amount)
 
   @Override
   public void execute() {
-    source.withdraw(amount);
-    target.deposit(amount);
+    Account first = source.getIban().compareTo(target.getIban()) < 0 ? source : target;
+
+    Account second = first == source ? target : source;
+
+    synchronized (first) {
+      synchronized (second) {
+        source.withdraw(amount);
+        target.deposit(amount);
+      }
+    }
   }
 
   @Override
   public void undo() {
-    target.withdraw(amount);
-    source.deposit(amount);
+    Account first = source.getIban().compareTo(target.getIban()) < 0 ? source : target;
+
+    Account second = first == source ? target : source;
+
+    synchronized (first) {
+      synchronized (second) {
+        target.withdraw(amount);
+        source.deposit(amount);
+      }
+    }
   }
 }
