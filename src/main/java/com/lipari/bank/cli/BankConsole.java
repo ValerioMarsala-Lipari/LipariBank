@@ -1,9 +1,5 @@
 package com.lipari.bank.cli;
 
-import com.lipari.bank.model.Account;
-
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Scanner;
 
 public class BankConsole {

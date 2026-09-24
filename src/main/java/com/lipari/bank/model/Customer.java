@@ -1,5 +1,7 @@
 package com.lipari.bank.model;
 
+import java.util.Objects;
+
 public class Customer {
 
   private final String fiscalCode;
@@ -7,12 +9,7 @@ public class Customer {
   private String lastName;
   private final CustomerType customerType;
 
-  public Customer(
-      String fiscalCode,
-      String firstName,
-      String lastName,
-      CustomerType customerType
-  ) {
+  public Customer(String fiscalCode, String firstName, String lastName, CustomerType customerType) {
     if (fiscalCode == null || fiscalCode.isBlank()) {
       throw new IllegalArgumentException("Fiscal code cannot be null or blank");
     }
@@ -66,4 +63,20 @@ public class Customer {
 
     this.lastName = lastName;
   }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+    Customer customer = (Customer) o;
+
+    return Objects.equals(fiscalCode, customer.fiscalCode);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(fiscalCode);
+  }
+
+
 }

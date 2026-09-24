@@ -5,24 +5,16 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
-public sealed abstract class Account
-    extends FinancialProduct
-    implements Taxable
-    permits CheckingAccount, SavingsAccount {
+public sealed abstract class Account extends FinancialProduct implements Taxable permits CheckingAccount, SavingsAccount {
 
   private final String iban;
   private final Customer owner;
   private final List<Transaction> transactions;
   private BigDecimal balance;
 
-  protected Account(
-      String id,
-      LocalDate creationDate,
-      String iban,
-      BigDecimal balance,
-      Customer owner
-  ) {
+  protected Account(String id, LocalDate creationDate, String iban, BigDecimal balance, Customer owner) {
     super(id, creationDate);
 
     if (iban == null || iban.isBlank()) {
@@ -64,14 +56,7 @@ public sealed abstract class Account
 
     balance = balance.add(amount);
 
-    transactions.add(
-        new Transaction(
-            TransactionType.DEPOSIT,
-            amount,
-            "Deposit",
-            java.time.LocalDateTime.now()
-        )
-    );
+    transactions.add(new Transaction(TransactionType.DEPOSIT, amount, "Deposit", java.time.LocalDateTime.now()));
   }
 
   public void withdraw(BigDecimal amount) {
@@ -83,14 +68,7 @@ public sealed abstract class Account
 
     balance = balance.subtract(amount);
 
-    transactions.add(
-        new Transaction(
-            TransactionType.WITHDRAWAL,
-            amount,
-            "Withdrawal",
-            java.time.LocalDateTime.now()
-        )
-    );
+    transactions.add(new Transaction(TransactionType.WITHDRAWAL, amount, "Withdrawal", java.time.LocalDateTime.now()));
   }
 
   public List<Transaction> getTransactions() {
@@ -99,9 +77,7 @@ public sealed abstract class Account
 
   private void validateAmount(BigDecimal amount) {
     if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
-      throw new IllegalArgumentException(
-          "Amount must be greater than zero"
-      );
+      throw new IllegalArgumentException("Amount must be greater than zero");
     }
   }
 
@@ -120,5 +96,25 @@ public sealed abstract class Account
 
   @Override
   public abstract BigDecimal calculateTaxAmount();
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+
+    Account account = (Account) o;
+
+    return Objects.equals(iban, account.iban);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(iban);
+  }
 
 }
