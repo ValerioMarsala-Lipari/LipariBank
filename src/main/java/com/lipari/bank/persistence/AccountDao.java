@@ -39,7 +39,50 @@ public class AccountDao {
     return account;
   }
 
-  public Optional<Account> findByIban(String iban) throws SQLException
+  public Optional<Account> findByIban(String iban) throws SQLException {
+
+    String sql = """
+        SELECT iban, account_type, balance, customer_id
+        FROM accounts
+        WHERE iban = ?
+        """;
+
+    try (Connection connection = DatabaseManager.getConnection(); PreparedStatement statement = connection.prepareStatement(sql)) {
+
+      statement.setString(1, iban);
+
+      try (ResultSet resultSet = statement.executeQuery()) {
+
+        if (!resultSet.next()) {
+          return Optional.empty();
+        }
+
+        Long customerId = resultSet.getLong("customer_id");
+
+        Customer customer = new CustomerDao().findById(customerId).orElseThrow(() -> new SQLException("Customer not found: " + customerId));
+
+        String accountType = resultSet.getString("account_type");
+        String accountIban = resultSet.getString("iban");
+        BigDecimal balance = resultSet.getBigDecimal("balance");
+
+        Account account;
+
+        if ("CheckingAccount".equals(accountType)) {
+
+          account = new CheckingAccount("DB-" + accountIban, LocalDate.now(), accountIban, balance, customer, BigDecimal.ZERO);
+
+        } else if ("SavingsAccount".equals(accountType)) {
+
+          account = new SavingsAccount("DB-" + accountIban, LocalDate.now(), accountIban, balance, customer, BigDecimal.ZERO);
+
+        } else {
+          throw new SQLException("Unknown account type: " + accountType);
+        }
+
+        return Optional.of(account);
+      }
+    }
+  }
 
   public List<Account> findByCustomerId(Long customerId) throws SQLException {
 
@@ -87,9 +130,7 @@ public class AccountDao {
     return accounts;
   }
 
-  public List<Customer> findCustomersWithTotalBalanceAbove(
-      BigDecimal threshold
-  ) throws SQLException {
+  public List<Customer> findCustomersWithTotalBalanceAbove(BigDecimal threshold) throws SQLException {
 
     String sql = """
         SELECT c.id, c.fiscal_code, c.first_name, c.last_name, c.customer_type
@@ -102,8 +143,7 @@ public class AccountDao {
 
     List<Customer> customers = new ArrayList<>();
 
-    try (Connection connection = DatabaseManager.getConnection();
-         PreparedStatement statement = connection.prepareStatement(sql)) {
+    try (Connection connection = DatabaseManager.getConnection(); PreparedStatement statement = connection.prepareStatement(sql)) {
 
       statement.setBigDecimal(1, threshold);
 
@@ -111,14 +151,7 @@ public class AccountDao {
 
         while (resultSet.next()) {
 
-          Customer customer = new Customer(
-              resultSet.getString("fiscal_code"),
-              resultSet.getString("first_name"),
-              resultSet.getString("last_name"),
-              CustomerType.valueOf(
-                  resultSet.getString("customer_type")
-              )
-          );
+          Customer customer = new Customer(resultSet.getString("fiscal_code"), resultSet.getString("first_name"), resultSet.getString("last_name"), CustomerType.valueOf(resultSet.getString("customer_type")));
 
           customer.setId(resultSet.getLong("id"));
 
