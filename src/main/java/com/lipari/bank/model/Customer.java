@@ -4,6 +4,7 @@ import java.util.Objects;
 
 public class Customer {
 
+  private Long id;
   private final String fiscalCode;
   private String firstName;
   private String lastName;
@@ -30,6 +31,14 @@ public class Customer {
     this.firstName = firstName;
     this.lastName = lastName;
     this.customerType = customerType;
+  }
+
+  public Long getId() {
+    return id;
+  }
+
+  public void setId(Long id) {
+    this.id = id;
   }
 
   public String getFiscalCode() {
