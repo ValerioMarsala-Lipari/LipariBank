@@ -1,0 +1,96 @@
+package com.lipari.bank.persistence;
+
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+import java.sql.Statement;
+
+public final class DatabaseManager {
+
+  private static final String URL = "jdbc:h2:./liparibank";
+
+  private DatabaseManager() {
+  }
+
+  public static Connection getConnection() throws SQLException {
+    return DriverManager.getConnection(URL);
+  }
+
+  public static void initializeSchema() throws SQLException {
+
+    String customersTable = """
+        CREATE TABLE IF NOT EXISTS customers (
+            id            BIGINT AUTO_INCREMENT PRIMARY KEY,
+            fiscal_code   VARCHAR(16) NOT NULL UNIQUE,
+            first_name    VARCHAR(100) NOT NULL,
+            last_name     VARCHAR(100) NOT NULL,
+            customer_type VARCHAR(20) NOT NULL,
+            created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+        """;
+
+    String accountsTable = """
+        CREATE TABLE IF NOT EXISTS accounts (
+            id            BIGINT AUTO_INCREMENT PRIMARY KEY,
+            iban          VARCHAR(34) NOT NULL UNIQUE,
+            account_type  VARCHAR(20) NOT NULL,
+            balance       DECIMAL(15,2) NOT NULL DEFAULT 0.00,
+            customer_id   BIGINT NOT NULL,
+            created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (customer_id) REFERENCES customers(id)
+        )
+        """;
+
+    String transactionsTable = """
+        CREATE TABLE IF NOT EXISTS transactions (
+            id          BIGINT AUTO_INCREMENT PRIMARY KEY,
+            account_id  BIGINT NOT NULL,
+            type        VARCHAR(20) NOT NULL,
+            amount      DECIMAL(15,2) NOT NULL,
+            description VARCHAR(500),
+            created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (account_id) REFERENCES accounts(id)
+        )
+        """;
+
+    String policiesTable = """
+        CREATE TABLE IF NOT EXISTS policies (
+            id              BIGINT AUTO_INCREMENT PRIMARY KEY,
+            policy_type     VARCHAR(50) NOT NULL,
+            customer_id     BIGINT NOT NULL,
+            premium         DECIMAL(15,2) NOT NULL,
+            expiration_date DATE,
+            status          VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
+            FOREIGN KEY (customer_id) REFERENCES customers(id)
+        )
+        """;
+
+    String accountsIndex = """
+        CREATE INDEX IF NOT EXISTS idx_accounts_customer
+        ON accounts(customer_id)
+        """;
+
+    String transactionsIndex = """
+        CREATE INDEX IF NOT EXISTS idx_transactions_account
+        ON transactions(account_id)
+        """;
+
+    String policiesIndex = """
+        CREATE INDEX IF NOT EXISTS idx_policies_customer
+        ON policies(customer_id)
+        """;
+
+    try (Connection connection = getConnection();
+         Statement statement = connection.createStatement()) {
+
+      statement.execute(customersTable);
+      statement.execute(accountsTable);
+      statement.execute(transactionsTable);
+      statement.execute(policiesTable);
+
+      statement.execute(accountsIndex);
+      statement.execute(transactionsIndex);
+      statement.execute(policiesIndex);
+    }
+  }
+}
