@@ -114,4 +114,12 @@ public class Policy extends FinancialProduct implements Taxable {
     // Esempio: 10% del premio
     return premium.multiply(new BigDecimal("0.10")).setScale(2, RoundingMode.HALF_UP);
   }
+
+  public boolean isActive() {
+    LocalDate today = LocalDate.now();
+
+    return status == PolicyStatus.ACTIVE
+        && !startDate.isAfter(today)
+        && expirationDate.isAfter(today);
+  }
 }

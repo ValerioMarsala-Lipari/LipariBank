@@ -54,9 +54,11 @@ public class ReportingService {
         )
         .map(policy -> new PolicySummary(
             policy.getId(),
-            policy.getPolicyType(),
             policy.getHolder().toString(),
-            policy.getExpirationDate()
+            policy.getPolicyType(),
+            policy.getPremium(),
+            policy.getExpirationDate(),
+            policy.isActive()
         ))
         .toList();
   }
