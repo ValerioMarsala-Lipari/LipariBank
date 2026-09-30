@@ -43,7 +43,7 @@ public class RiskScoreDao {
   }
 
   /**
-   * Finds all persisted risk scores.
+   * Finds all persisted risk scores ordered by calculation time.
    *
    * @return persisted risk scores
    * @throws SQLException if the database operation fails
@@ -66,6 +66,13 @@ public class RiskScoreDao {
     return riskScores;
   }
 
+  /**
+   * Maps a database row to a risk score.
+   *
+   * @param resultSet result set containing risk score data
+   * @return mapped risk score
+   * @throws SQLException if a database column cannot be read
+   */
   private RiskScore mapRow(ResultSet resultSet) throws SQLException {
     return new RiskScore(resultSet.getLong("customer_id"), resultSet.getInt("score"), RiskLevel.valueOf(resultSet.getString("risk_level")), resultSet.getTimestamp("calculated_at").toLocalDateTime());
   }

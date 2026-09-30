@@ -5,6 +5,12 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
 
+/**
+ * Manages database connections and schema initialization.
+ *
+ * @author Valerio
+ * @since 1.0
+ */
 public final class DatabaseManager {
 
   private static final String URL = "jdbc:h2:./liparibank";
@@ -12,12 +18,22 @@ public final class DatabaseManager {
   private DatabaseManager() {
   }
 
+  /**
+   * Creates a new connection to the H2 database.
+   *
+   * @return database connection
+   * @throws SQLException if a database connection cannot be established
+   */
   public static Connection getConnection() throws SQLException {
     return DriverManager.getConnection(URL);
   }
 
+  /**
+   * Initializes all database tables and indexes required by the application.
+   *
+   * @throws SQLException if schema initialization fails
+   */
   public static void initializeSchema() throws SQLException {
-
     String customersTable = """
         CREATE TABLE IF NOT EXISTS customers (
             id            BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -82,13 +98,13 @@ public final class DatabaseManager {
 
     String riskScoresTable = """
         CREATE TABLE IF NOT EXISTS risk_scores (
-           id BIGINT AUTO_INCREMENT PRIMARY KEY,
-           customer_id BIGINT NOT NULL,
-           score INT NOT NULL,
-           risk_level VARCHAR(20) NOT NULL,
-           calculated_at TIMESTAMP NOT NULL,
-           CONSTRAINT chk_risk_score CHECK (score BETWEEN 0 AND 100)
-          );
+            id              BIGINT AUTO_INCREMENT PRIMARY KEY,
+            customer_id     BIGINT NOT NULL,
+            score           INT NOT NULL,
+            risk_level      VARCHAR(20) NOT NULL,
+            calculated_at   TIMESTAMP NOT NULL,
+            CONSTRAINT chk_risk_score CHECK (score BETWEEN 0 AND 100)
+        )
         """;
 
     String alertsTable = """
@@ -103,7 +119,6 @@ public final class DatabaseManager {
         """;
 
     try (Connection connection = getConnection(); Statement statement = connection.createStatement()) {
-
       statement.execute(customersTable);
       statement.execute(accountsTable);
       statement.execute(transactionsTable);

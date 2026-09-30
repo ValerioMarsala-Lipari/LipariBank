@@ -12,10 +12,23 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Data access object for bank accounts.
+ *
+ * @author Valerio
+ * @since 1.0
+ */
 public class AccountDao {
 
+  /**
+   * Saves an account associated with a customer.
+   *
+   * @param account    account to save
+   * @param customerId identifier of the account owner
+   * @return the saved account
+   * @throws SQLException if a database error occurs
+   */
   public Account save(Account account, Long customerId) throws SQLException {
-
     String sql = """
         INSERT INTO accounts (
             iban,
@@ -27,7 +40,6 @@ public class AccountDao {
         """;
 
     try (Connection connection = DatabaseManager.getConnection(); PreparedStatement statement = connection.prepareStatement(sql)) {
-
       statement.setString(1, account.getIban());
       statement.setString(2, account.getClass().getSimpleName());
       statement.setBigDecimal(3, account.getBalance());
@@ -39,8 +51,14 @@ public class AccountDao {
     return account;
   }
 
+  /**
+   * Finds an account by its IBAN.
+   *
+   * @param iban account IBAN
+   * @return the account if found, otherwise an empty optional
+   * @throws SQLException if a database error occurs
+   */
   public Optional<Account> findByIban(String iban) throws SQLException {
-
     String sql = """
         SELECT iban, account_type, balance, customer_id
         FROM accounts
@@ -48,11 +66,9 @@ public class AccountDao {
         """;
 
     try (Connection connection = DatabaseManager.getConnection(); PreparedStatement statement = connection.prepareStatement(sql)) {
-
       statement.setString(1, iban);
 
       try (ResultSet resultSet = statement.executeQuery()) {
-
         if (!resultSet.next()) {
           return Optional.empty();
         }
@@ -61,31 +77,19 @@ public class AccountDao {
 
         Customer customer = new CustomerDao().findById(customerId).orElseThrow(() -> new SQLException("Customer not found: " + customerId));
 
-        String accountType = resultSet.getString("account_type");
-        String accountIban = resultSet.getString("iban");
-        BigDecimal balance = resultSet.getBigDecimal("balance");
-
-        Account account;
-
-        if ("CheckingAccount".equals(accountType)) {
-
-          account = new CheckingAccount("DB-" + accountIban, LocalDate.now(), accountIban, balance, customer, BigDecimal.ZERO);
-
-        } else if ("SavingsAccount".equals(accountType)) {
-
-          account = new SavingsAccount("DB-" + accountIban, LocalDate.now(), accountIban, balance, customer, BigDecimal.ZERO);
-
-        } else {
-          throw new SQLException("Unknown account type: " + accountType);
-        }
-
-        return Optional.of(account);
+        return Optional.of(mapAccount(resultSet, customer));
       }
     }
   }
 
+  /**
+   * Finds all accounts belonging to a customer.
+   *
+   * @param customerId identifier of the customer
+   * @return list of the customer's accounts
+   * @throws SQLException if a database error occurs
+   */
   public List<Account> findByCustomerId(Long customerId) throws SQLException {
-
     String sql = """
         SELECT iban, account_type, balance, customer_id
         FROM accounts
@@ -95,34 +99,13 @@ public class AccountDao {
     List<Account> accounts = new ArrayList<>();
 
     try (Connection connection = DatabaseManager.getConnection(); PreparedStatement statement = connection.prepareStatement(sql)) {
-
       statement.setLong(1, customerId);
 
       try (ResultSet resultSet = statement.executeQuery()) {
-
         Customer customer = new CustomerDao().findById(customerId).orElseThrow(() -> new SQLException("Customer not found: " + customerId));
 
         while (resultSet.next()) {
-
-          String accountType = resultSet.getString("account_type");
-          String iban = resultSet.getString("iban");
-          BigDecimal balance = resultSet.getBigDecimal("balance");
-
-          Account account;
-
-          if ("CheckingAccount".equals(accountType)) {
-
-            account = new CheckingAccount("DB-" + iban, LocalDate.now(), iban, balance, customer, BigDecimal.ZERO);
-
-          } else if ("SavingsAccount".equals(accountType)) {
-
-            account = new SavingsAccount("DB-" + iban, LocalDate.now(), iban, balance, customer, BigDecimal.ZERO);
-
-          } else {
-            throw new SQLException("Unknown account type: " + accountType);
-          }
-
-          accounts.add(account);
+          accounts.add(mapAccount(resultSet, customer));
         }
       }
     }
@@ -130,13 +113,29 @@ public class AccountDao {
     return accounts;
   }
 
+  /**
+   * Finds customers whose total account balance exceeds the specified threshold.
+   *
+   * @param threshold minimum total balance
+   * @return customers whose total balance exceeds the threshold
+   * @throws SQLException if a database error occurs
+   */
   public List<Customer> findCustomersWithTotalBalanceAbove(BigDecimal threshold) throws SQLException {
-
     String sql = """
-        SELECT c.id, c.fiscal_code, c.first_name, c.last_name, c.customer_type, c.created_at
+        SELECT c.id,
+               c.fiscal_code,
+               c.first_name,
+               c.last_name,
+               c.customer_type,
+               c.created_at
         FROM customers c
         INNER JOIN accounts a ON c.id = a.customer_id
-        GROUP BY c.id, c.fiscal_code, c.first_name, c.last_name, c.customer_type
+        GROUP BY c.id,
+                 c.fiscal_code,
+                 c.first_name,
+                 c.last_name,
+                 c.customer_type,
+                 c.created_at
         HAVING SUM(a.balance) > ?
         ORDER BY SUM(a.balance) DESC
         """;
@@ -144,22 +143,40 @@ public class AccountDao {
     List<Customer> customers = new ArrayList<>();
 
     try (Connection connection = DatabaseManager.getConnection(); PreparedStatement statement = connection.prepareStatement(sql)) {
-
       statement.setBigDecimal(1, threshold);
 
       try (ResultSet resultSet = statement.executeQuery()) {
-
         while (resultSet.next()) {
-
           Customer customer = new Customer(resultSet.getString("fiscal_code"), resultSet.getString("first_name"), resultSet.getString("last_name"), CustomerType.valueOf(resultSet.getString("customer_type")), resultSet.getTimestamp("created_at").toLocalDateTime().toLocalDate());
 
           customer.setId(resultSet.getLong("id"));
-
           customers.add(customer);
         }
       }
     }
 
     return customers;
+  }
+
+  /**
+   * Maps a database row to the corresponding account subtype.
+   *
+   * @param resultSet result set containing the account data
+   * @param customer  account owner
+   * @return mapped account
+   * @throws SQLException if the account type is unknown or a column cannot be read
+   */
+  private Account mapAccount(ResultSet resultSet, Customer customer) throws SQLException {
+    String accountType = resultSet.getString("account_type");
+    String iban = resultSet.getString("iban");
+    BigDecimal balance = resultSet.getBigDecimal("balance");
+
+    return switch (accountType) {
+      case "CheckingAccount" ->
+          new CheckingAccount("DB-" + iban, LocalDate.now(), iban, balance, customer, BigDecimal.ZERO);
+      case "SavingsAccount" ->
+          new SavingsAccount("DB-" + iban, LocalDate.now(), iban, balance, customer, BigDecimal.ZERO);
+      default -> throw new SQLException("Unknown account type: " + accountType);
+    };
   }
 }

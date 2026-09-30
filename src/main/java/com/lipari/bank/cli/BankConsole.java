@@ -2,13 +2,16 @@ package com.lipari.bank.cli;
 
 import com.lipari.bank.compliance.ComplianceEngine;
 import com.lipari.bank.compliance.alert.Alert;
+
 import com.lipari.bank.compliance.rules.*;
 import com.lipari.bank.exception.AccountNotFoundException;
 import com.lipari.bank.exception.InsufficientFundsException;
+
 import com.lipari.bank.model.*;
 import com.lipari.bank.reporting.ComplianceReport;
 import com.lipari.bank.reporting.ComplianceReportService;
 import com.lipari.bank.repository.AccountRepository;
+
 import com.lipari.bank.risk.*;
 import com.lipari.bank.service.TransferService;
 
@@ -19,6 +22,12 @@ import java.util.Map;
 import java.util.Scanner;
 import java.util.stream.Collectors;
 
+/**
+ * Provides the interactive console interface for LipariBank operations.
+ *
+ * @author Valerio
+ * @since 1.0
+ */
 public class BankConsole {
 
   private final Scanner scanner = new Scanner(System.in);
@@ -30,6 +39,9 @@ public class BankConsole {
   private final ComplianceEngine complianceEngine;
   private final ComplianceReportService complianceReportService;
 
+  /**
+   * Creates and configures the bank console and its application services.
+   */
   public BankConsole() {
     this.transferService = new TransferService(accountRepository);
 
@@ -45,6 +57,11 @@ public class BankConsole {
 
   // ─── Entry point ───────────────────────────────────────────────────────────
 
+  /**
+   * Starts the LipariBank console application.
+   *
+   * @param args command-line arguments
+   */
   public static void main(String[] args) {
     BankConsole console = new BankConsole();
     console.initializeData();
