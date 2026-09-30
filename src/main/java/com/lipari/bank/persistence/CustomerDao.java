@@ -18,7 +18,7 @@ public class CustomerDao {
             first_name,
             last_name,
             customer_type,
-            created_at,
+            created_at
         )
         VALUES (?, ?, ?, ?, ?)
         """;
@@ -61,12 +61,7 @@ public class CustomerDao {
       try (ResultSet resultSet = statement.executeQuery()) {
 
         if (resultSet.next()) {
-
-          Customer customer = new Customer(resultSet.getString("fiscal_code"), resultSet.getString("first_name"), resultSet.getString("last_name"), CustomerType.valueOf(resultSet.getString("customer_type")), resultSet.getTimestamp("created_at").toLocalDateTime().toLocalDate());
-
-          customer.setId(resultSet.getLong("id"));
-
-          return Optional.of(customer);
+          return Optional.of(mapCustomer(resultSet));
         }
 
         return Optional.empty();
@@ -89,12 +84,7 @@ public class CustomerDao {
       try (ResultSet resultSet = statement.executeQuery()) {
 
         if (resultSet.next()) {
-
-          Customer customer = new Customer(resultSet.getString("fiscal_code"), resultSet.getString("first_name"), resultSet.getString("last_name"), CustomerType.valueOf(resultSet.getString("customer_type")), resultSet.getTimestamp("created_at").toLocalDateTime().toLocalDate());
-
-          customer.setId(resultSet.getLong("id"));
-
-          return Optional.of(customer);
+          return Optional.of(mapCustomer(resultSet));
         }
 
         return Optional.empty();
@@ -115,12 +105,7 @@ public class CustomerDao {
     try (Connection connection = DatabaseManager.getConnection(); PreparedStatement statement = connection.prepareStatement(sql); ResultSet resultSet = statement.executeQuery()) {
 
       while (resultSet.next()) {
-
-        Customer customer = new Customer(resultSet.getString("fiscal_code"), resultSet.getString("first_name"), resultSet.getString("last_name"), CustomerType.valueOf(resultSet.getString("customer_type")), resultSet.getTimestamp("created_at").toLocalDateTime().toLocalDate());
-
-        customer.setId(resultSet.getLong("id"));
-
-        customers.add(customer);
+        customers.add(mapCustomer(resultSet));
       }
     }
 
@@ -142,5 +127,19 @@ public class CustomerDao {
 
       return rowsAffected > 0;
     }
+  }
+
+  private Customer mapCustomer(ResultSet resultSet) throws SQLException {
+    Customer customer = new Customer(
+        resultSet.getString("fiscal_code"),
+        resultSet.getString("first_name"),
+        resultSet.getString("last_name"),
+        CustomerType.valueOf(resultSet.getString("customer_type")),
+        resultSet.getTimestamp("created_at").toLocalDateTime().toLocalDate()
+    );
+
+    customer.setId(resultSet.getLong("id"));
+
+    return customer;
   }
 }
