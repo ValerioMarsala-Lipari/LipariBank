@@ -33,7 +33,6 @@ public class BankConsole {
   private final AccountRepository accountRepository = new AccountRepository();
   private final TransferService transferService;
 
-  private final RiskCalculationService riskCalculationService;
   private final ParallelRiskCalculationService parallelRiskCalculationService;
   private final ComplianceEngine complianceEngine;
   private final ComplianceReportService complianceReportService;
@@ -43,8 +42,10 @@ public class BankConsole {
    */
   public BankConsole() {
     this.transferService = new TransferService(accountRepository);
-    this.riskCalculationService = new RiskCalculationService(new PrivateCustomerScoringStrategy(), new BusinessCustomerScoringStrategy());
+    RiskCalculationService riskCalculationService = new RiskCalculationService(new PrivateCustomerScoringStrategy(), new BusinessCustomerScoringStrategy());
+
     this.parallelRiskCalculationService = new ParallelRiskCalculationService(riskCalculationService);
+
     List<ComplianceRule> complianceRules = List.of(new HighFrequencyTransferRule(), new LargeTransactionRule(), new DailyVolumeRule(), new NewCustomerHighValueRule());
 
     this.complianceEngine = new ComplianceEngine(complianceRules);
@@ -95,7 +96,6 @@ public class BankConsole {
   }
 
   private void initializeData() {
-
     BankConfiguration configuration = BankConfiguration.getInstance();
 
     configuration.setDailyTransferLimit(new BigDecimal("10000"));
@@ -296,11 +296,7 @@ public class BankConsole {
 
     Map<CustomerType, Long> customersByType = accounts.stream().map(Account::getOwner).distinct().collect(Collectors.groupingBy(Customer::getCustomerType, Collectors.counting()));
 
-    Map<String, Long> accountsByType = accounts.stream().collect(Collectors.groupingBy(account -> switch (account) {
-      case CheckingAccount checkingAccount -> "CHECKING";
-      case SavingsAccount savingsAccount -> "SAVINGS";
-      default -> "UNKNOWN";
-    }, Collectors.counting()));
+    Map<String, Long> accountsByType = accounts.stream().collect(Collectors.groupingBy(account -> account instanceof CheckingAccount ? "CHECKING" : account instanceof SavingsAccount ? "SAVINGS" : "UNKNOWN", Collectors.counting()));
 
     long totalTransactions = accounts.stream().mapToLong(account -> account.getTransactions().size()).sum();
 
