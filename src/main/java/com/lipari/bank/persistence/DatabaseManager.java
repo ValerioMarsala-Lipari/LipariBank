@@ -91,6 +91,17 @@ public final class DatabaseManager {
           );
         """;
 
+    String alertsTable = """
+        CREATE TABLE IF NOT EXISTS alerts (
+            id           VARCHAR(36) PRIMARY KEY,
+            customer_id  BIGINT NOT NULL,
+            level        VARCHAR(20) NOT NULL,
+            rule_name    VARCHAR(100) NOT NULL,
+            message      VARCHAR(500) NOT NULL,
+            created_at   TIMESTAMP NOT NULL
+        )
+        """;
+
     try (Connection connection = getConnection(); Statement statement = connection.createStatement()) {
 
       statement.execute(customersTable);
@@ -102,6 +113,7 @@ public final class DatabaseManager {
       statement.execute(transactionsIndex);
       statement.execute(policiesIndex);
       statement.execute(riskScoresTable);
+      statement.execute(alertsTable);
     }
   }
 }
