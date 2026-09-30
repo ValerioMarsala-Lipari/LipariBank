@@ -2,6 +2,7 @@ package com.lipari.bank.compliance;
 
 import com.lipari.bank.compliance.alert.Alert;
 import com.lipari.bank.compliance.rules.ComplianceRule;
+import com.lipari.bank.exception.AlertGenerationException;
 import com.lipari.bank.model.Customer;
 import com.lipari.bank.model.Transaction;
 
@@ -39,13 +40,22 @@ public class ComplianceEngine {
    */
   public List<Alert> evaluate(Customer customer, List<Transaction> transactions) {
     if (customer == null) {
-      throw new IllegalArgumentException("Customer cannot be null");
+      throw new AlertGenerationException("Cannot generate alerts for a null customer");
     }
 
     if (transactions == null) {
-      throw new IllegalArgumentException("Transactions cannot be null");
+      throw new AlertGenerationException("Cannot generate alerts with null transactions");
     }
 
-    return rules.stream().map(rule -> rule.evaluate(customer, transactions)).flatMap(java.util.Optional::stream).toList();
+    try {
+      return rules.stream().map(rule -> rule.evaluate(customer, transactions)).flatMap(java.util.Optional::stream).toList();
+
+    } catch (RuntimeException exception) {
+      if (exception instanceof AlertGenerationException) {
+        throw exception;
+      }
+
+      throw new AlertGenerationException("Failed to generate compliance alerts for customer " + customer.getId(), exception);
+    }
   }
 }

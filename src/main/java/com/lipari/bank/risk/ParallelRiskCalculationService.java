@@ -1,5 +1,6 @@
 package com.lipari.bank.risk;
 
+import com.lipari.bank.exception.RiskCalculationException;
 import com.lipari.bank.model.Account;
 import com.lipari.bank.model.Customer;
 import com.lipari.bank.model.Transaction;
@@ -66,9 +67,16 @@ public class ParallelRiskCalculationService {
       return future.get();
     } catch (InterruptedException exception) {
       Thread.currentThread().interrupt();
-      throw new IllegalStateException("Risk calculation was interrupted", exception);
+
+      throw new RiskCalculationException("Risk calculation was interrupted", exception);
     } catch (java.util.concurrent.ExecutionException exception) {
-      throw new IllegalStateException("Risk calculation failed", exception.getCause());
+      Throwable cause = exception.getCause();
+
+      if (cause instanceof RiskCalculationException riskException) {
+        throw riskException;
+      }
+
+      throw new RiskCalculationException("Risk calculation failed", cause);
     }
   }
 }

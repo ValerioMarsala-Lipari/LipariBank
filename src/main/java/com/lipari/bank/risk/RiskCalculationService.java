@@ -1,5 +1,6 @@
 package com.lipari.bank.risk;
 
+import com.lipari.bank.exception.RiskCalculationException;
 import com.lipari.bank.model.Account;
 import com.lipari.bank.model.Customer;
 import com.lipari.bank.model.Transaction;
@@ -47,25 +48,34 @@ public class RiskCalculationService {
    */
   public RiskScore calculateRisk(Customer customer, List<Account> accounts, List<Transaction> transactions) {
     if (customer == null) {
-      throw new IllegalArgumentException("Customer cannot be null");
+      throw new RiskCalculationException("Cannot calculate risk for a null customer");
     }
 
     if (accounts == null) {
-      throw new IllegalArgumentException("Accounts cannot be null");
+      throw new RiskCalculationException("Cannot calculate risk with null accounts");
     }
 
     if (transactions == null) {
-      throw new IllegalArgumentException("Transactions cannot be null");
+      throw new RiskCalculationException("Cannot calculate risk with null transactions");
     }
 
-    RiskScoringStrategy strategy = switch (customer.getCustomerType()) {
-      case PRIVATE -> privateCustomerStrategy;
-      case BUSINESS -> businessCustomerStrategy;
-    };
+    try {
+      RiskScoringStrategy strategy = switch (customer.getCustomerType()) {
+        case PRIVATE -> privateCustomerStrategy;
+        case BUSINESS -> businessCustomerStrategy;
+      };
 
-    int score = strategy.calculateScore(customer, accounts, transactions);
+      int score = strategy.calculateScore(customer, accounts, transactions);
 
-    return new RiskScore(customer.getId(), score, determineRiskLevel(score), LocalDateTime.now());
+      return new RiskScore(customer.getId(), score, determineRiskLevel(score), LocalDateTime.now());
+
+    } catch (RuntimeException exception) {
+      if (exception instanceof RiskCalculationException) {
+        throw exception;
+      }
+
+      throw new RiskCalculationException("Failed to calculate risk for customer " + customer.getId(), exception);
+    }
   }
 
   private RiskLevel determineRiskLevel(int score) {
