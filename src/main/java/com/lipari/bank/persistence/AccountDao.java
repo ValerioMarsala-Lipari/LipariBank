@@ -133,7 +133,7 @@ public class AccountDao {
   public List<Customer> findCustomersWithTotalBalanceAbove(BigDecimal threshold) throws SQLException {
 
     String sql = """
-        SELECT c.id, c.fiscal_code, c.first_name, c.last_name, c.customer_type
+        SELECT c.id, c.fiscal_code, c.first_name, c.last_name, c.customer_type, c.created_at
         FROM customers c
         INNER JOIN accounts a ON c.id = a.customer_id
         GROUP BY c.id, c.fiscal_code, c.first_name, c.last_name, c.customer_type
@@ -151,7 +151,7 @@ public class AccountDao {
 
         while (resultSet.next()) {
 
-          Customer customer = new Customer(resultSet.getString("fiscal_code"), resultSet.getString("first_name"), resultSet.getString("last_name"), CustomerType.valueOf(resultSet.getString("customer_type")));
+          Customer customer = new Customer(resultSet.getString("fiscal_code"), resultSet.getString("first_name"), resultSet.getString("last_name"), CustomerType.valueOf(resultSet.getString("customer_type")), resultSet.getTimestamp("created_at").toLocalDateTime().toLocalDate());
 
           customer.setId(resultSet.getLong("id"));
 

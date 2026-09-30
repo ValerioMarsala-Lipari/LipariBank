@@ -57,9 +57,9 @@ public class BankConsole {
 
   // ─── Inizializzazione dati ──────────────────────────────────────────────────────────────────
   private void initializeData() {
-    Customer mario = new Customer("RSSMRA80A01H501X", "Mario", "Rossi", CustomerType.PRIVATE);
+    Customer mario = new Customer("RSSMRA80A01H501X", "Mario", "Rossi", CustomerType.PRIVATE, LocalDate.now().minusYears(2));
 
-    Customer laura = new Customer("BNCLRA85B02H501Y", "Laura", "Bianchi", CustomerType.PRIVATE);
+    Customer laura = new Customer("BNCLRA85B02H501Y", "Laura", "Bianchi", CustomerType.PRIVATE, LocalDate.now().minusMonths(3));
 
     Account marioAccount = new CheckingAccount("ACC-001", LocalDate.now(), "IT60X0542811101000000123456", BigDecimal.valueOf(1000), mario, BigDecimal.valueOf(200));
 

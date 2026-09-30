@@ -47,7 +47,7 @@ public class CustomerDao {
   public Optional<Customer> findById(Long id) throws SQLException {
 
     String sql = """
-        SELECT id, fiscal_code, first_name, last_name, customer_type
+        SELECT id, fiscal_code, first_name, last_name, customer_type, created_at
         FROM customers
         WHERE id = ?
         """;
@@ -60,7 +60,7 @@ public class CustomerDao {
 
         if (resultSet.next()) {
 
-          Customer customer = new Customer(resultSet.getString("fiscal_code"), resultSet.getString("first_name"), resultSet.getString("last_name"), CustomerType.valueOf(resultSet.getString("customer_type")));
+          Customer customer = new Customer(resultSet.getString("fiscal_code"), resultSet.getString("first_name"), resultSet.getString("last_name"), CustomerType.valueOf(resultSet.getString("customer_type")), resultSet.getTimestamp("created_at").toLocalDateTime().toLocalDate());
 
           customer.setId(resultSet.getLong("id"));
 
@@ -75,7 +75,7 @@ public class CustomerDao {
   public Optional<Customer> findByFiscalCode(String fiscalCode) throws SQLException {
 
     String sql = """
-        SELECT id, fiscal_code, first_name, last_name, customer_type
+        SELECT id, fiscal_code, first_name, last_name, customer_type, created_at
         FROM customers
         WHERE fiscal_code = ?
         """;
@@ -88,7 +88,7 @@ public class CustomerDao {
 
         if (resultSet.next()) {
 
-          Customer customer = new Customer(resultSet.getString("fiscal_code"), resultSet.getString("first_name"), resultSet.getString("last_name"), CustomerType.valueOf(resultSet.getString("customer_type")));
+          Customer customer = new Customer(resultSet.getString("fiscal_code"), resultSet.getString("first_name"), resultSet.getString("last_name"), CustomerType.valueOf(resultSet.getString("customer_type")), resultSet.getTimestamp("created_at").toLocalDateTime().toLocalDate());
 
           customer.setId(resultSet.getLong("id"));
 
@@ -103,7 +103,7 @@ public class CustomerDao {
   public List<Customer> findAll() throws SQLException {
 
     String sql = """
-        SELECT id, fiscal_code, first_name, last_name, customer_type
+        SELECT id, fiscal_code, first_name, last_name, customer_type,  created_at
         FROM customers
         ORDER BY last_name
         """;
@@ -114,7 +114,7 @@ public class CustomerDao {
 
       while (resultSet.next()) {
 
-        Customer customer = new Customer(resultSet.getString("fiscal_code"), resultSet.getString("first_name"), resultSet.getString("last_name"), CustomerType.valueOf(resultSet.getString("customer_type")));
+        Customer customer = new Customer(resultSet.getString("fiscal_code"), resultSet.getString("first_name"), resultSet.getString("last_name"), CustomerType.valueOf(resultSet.getString("customer_type")), resultSet.getTimestamp("created_at").toLocalDateTime().toLocalDate());
 
         customer.setId(resultSet.getLong("id"));
 

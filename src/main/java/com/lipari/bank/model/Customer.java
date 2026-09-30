@@ -1,5 +1,6 @@
 package com.lipari.bank.model;
 
+import java.time.LocalDate;
 import java.util.Objects;
 
 public class Customer {
@@ -9,8 +10,9 @@ public class Customer {
   private String firstName;
   private String lastName;
   private final CustomerType customerType;
+  private final LocalDate createdAt;
 
-  public Customer(String fiscalCode, String firstName, String lastName, CustomerType customerType) {
+  public Customer(String fiscalCode, String firstName, String lastName, CustomerType customerType, LocalDate createdAt) {
     if (fiscalCode == null || fiscalCode.isBlank()) {
       throw new IllegalArgumentException("Fiscal code cannot be null or blank");
     }
@@ -31,6 +33,7 @@ public class Customer {
     this.firstName = firstName;
     this.lastName = lastName;
     this.customerType = customerType;
+    this.createdAt = createdAt;
   }
 
   public Long getId() {
@@ -55,6 +58,10 @@ public class Customer {
 
   public CustomerType getCustomerType() {
     return customerType;
+  }
+
+  public LocalDate getCreatedAt() {
+    return createdAt;
   }
 
   public void setFirstName(String firstName) {
