@@ -1,14 +1,23 @@
 package com.lipari.bank.cli;
 
+import com.lipari.bank.compliance.ComplianceEngine;
+import com.lipari.bank.compliance.alert.Alert;
+import com.lipari.bank.compliance.rules.*;
 import com.lipari.bank.exception.AccountNotFoundException;
 import com.lipari.bank.exception.InsufficientFundsException;
 import com.lipari.bank.model.*;
+import com.lipari.bank.reporting.ComplianceReport;
+import com.lipari.bank.reporting.ComplianceReportService;
 import com.lipari.bank.repository.AccountRepository;
+import com.lipari.bank.risk.*;
 import com.lipari.bank.service.TransferService;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
+import java.util.Map;
 import java.util.Scanner;
+import java.util.stream.Collectors;
 
 public class BankConsole {
 
@@ -16,8 +25,22 @@ public class BankConsole {
   private final AccountRepository accountRepository = new AccountRepository();
   private final TransferService transferService;
 
+  private final RiskCalculationService riskCalculationService;
+  private final ParallelRiskCalculationService parallelRiskCalculationService;
+  private final ComplianceEngine complianceEngine;
+  private final ComplianceReportService complianceReportService;
+
   public BankConsole() {
     this.transferService = new TransferService(accountRepository);
+
+    this.riskCalculationService = new RiskCalculationService(new PrivateCustomerScoringStrategy(), new BusinessCustomerScoringStrategy());
+
+    this.parallelRiskCalculationService = new ParallelRiskCalculationService(riskCalculationService);
+
+    List<ComplianceRule> complianceRules = List.of(new HighFrequencyTransferRule(), new LargeTransactionRule(), new DailyVolumeRule(), new NewCustomerHighValueRule());
+
+    this.complianceEngine = new ComplianceEngine(complianceRules);
+    this.complianceReportService = new ComplianceReportService();
   }
 
   // ─── Entry point ───────────────────────────────────────────────────────────
@@ -34,6 +57,7 @@ public class BankConsole {
     System.out.println("Benvenuto in LipariBank!");
 
     boolean running = true;
+
     while (running) {
       printMenu();
       int choice = readIntSafe();
@@ -46,6 +70,7 @@ public class BankConsole {
         case 5 -> makeTransfer();
         case 6 -> showTransactions();
         case 7, 8, 9, 10 -> placeholder();
+        case 11 -> showRiskAndCompliance();
         case 0 -> {
           System.out.println("\nArrivederci da LipariBank!");
           running = false;
@@ -55,11 +80,14 @@ public class BankConsole {
     }
   }
 
-  // ─── Inizializzazione dati ──────────────────────────────────────────────────────────────────
+  // ─── Inizializzazione dati ─────────────────────────────────────────────────
+
   private void initializeData() {
     Customer mario = new Customer("RSSMRA80A01H501X", "Mario", "Rossi", CustomerType.PRIVATE, LocalDate.now().minusYears(2));
+    mario.setId(1L);
 
     Customer laura = new Customer("BNCLRA85B02H501Y", "Laura", "Bianchi", CustomerType.PRIVATE, LocalDate.now().minusMonths(3));
+    laura.setId(2L);
 
     Account marioAccount = new CheckingAccount("ACC-001", LocalDate.now(), "IT60X0542811101000000123456", BigDecimal.valueOf(1000), mario, BigDecimal.valueOf(200));
 
@@ -87,6 +115,7 @@ public class BankConsole {
         ║  8. Configurazione                   ║
         ║  9. Applica interessi (risparmio)    ║
         ║  10. Processa e classifica conti     ║
+        ║  11. Risk & Compliance               ║
         ║  0. Esci                             ║
         ╚══════════════════════════════════════╝""");
     System.out.print("  Scelta: ");
@@ -96,6 +125,8 @@ public class BankConsole {
 
   /**
    * Legge un intero da console.
+   *
+   * @return valore intero inserito dall'utente, oppure -1 se non valido
    */
   private int readIntSafe() {
     String input = scanner.nextLine().trim();
@@ -104,6 +135,16 @@ public class BankConsole {
       return Integer.parseInt(input);
     } catch (NumberFormatException e) {
       return -1;
+    }
+  }
+
+  private BigDecimal readBigDecimalSafe() {
+    String input = scanner.nextLine().trim();
+
+    try {
+      return new BigDecimal(input);
+    } catch (NumberFormatException e) {
+      return BigDecimal.valueOf(-1);
     }
   }
 
@@ -128,16 +169,6 @@ public class BankConsole {
 
     } catch (AccountNotFoundException e) {
       System.out.println("⚠ " + e.getMessage());
-    }
-  }
-
-  private BigDecimal readBigDecimalSafe() {
-    String input = scanner.nextLine().trim();
-
-    try {
-      return new BigDecimal(input);
-    } catch (NumberFormatException e) {
-      return BigDecimal.valueOf(-1);
     }
   }
 
@@ -231,8 +262,61 @@ public class BankConsole {
     }
   }
 
+  // ─── Risk & Compliance ────────────────────────────────────────────────────
+
+  private void showRiskAndCompliance() {
+    System.out.println("\n─── RISK & COMPLIANCE ─────────────────────────────────");
+
+    List<Account> accounts = accountRepository.findAll();
+
+    List<Customer> customers = accounts.stream().map(Account::getOwner).distinct().toList();
+
+    Map<Long, List<Account>> accountsByCustomer = accounts.stream().collect(Collectors.groupingBy(account -> account.getOwner().getId()));
+
+    Map<Long, List<Transaction>> transactionsByCustomer = accounts.stream().collect(Collectors.groupingBy(account -> account.getOwner().getId(), Collectors.flatMapping(account -> account.getTransactions().stream(), Collectors.toList())));
+
+    List<RiskScore> riskScores = parallelRiskCalculationService.calculateRisks(customers, accountsByCustomer, transactionsByCustomer);
+
+    List<Alert> alerts = customers.stream().flatMap(customer -> complianceEngine.evaluate(customer, transactionsByCustomer.getOrDefault(customer.getId(), List.of())).stream()).toList();
+
+    Map<Long, CustomerType> customerTypes = customers.stream().collect(Collectors.toMap(Customer::getId, Customer::getCustomerType));
+
+    ComplianceReport report = complianceReportService.generateReport(riskScores, alerts, customerTypes);
+
+    System.out.println("\nRisk scores:");
+
+    for (RiskScore riskScore : riskScores) {
+      System.out.println("Customer " + riskScore.customerId() + " -> " + riskScore.score() + " -> " + riskScore.level());
+    }
+
+    System.out.println("\nRisk distribution:");
+
+    report.riskDistribution().forEach((level, count) -> System.out.println(level + " -> " + count));
+
+    System.out.println("\nOpen alerts:");
+
+    if (report.openAlerts().isEmpty()) {
+      System.out.println("Nessun alert.");
+    } else {
+      report.openAlerts().forEach(alert -> System.out.println(alert.level() + " - " + alert.ruleName() + " - " + alert.message()));
+    }
+
+    System.out.println("\nAverage risk by customer type:");
+
+    report.averageRiskByCustomerType().forEach((type, average) -> System.out.println(type + " -> " + average));
+
+    System.out.println("\nCustomers to flag:");
+
+    if (report.customersToFlag().isEmpty()) {
+      System.out.println("Nessun cliente da segnalare.");
+    } else {
+      report.customersToFlag().forEach(riskScore -> System.out.println("Customer " + riskScore.customerId() + " -> " + riskScore.score()));
+    }
+  }
+
+  // ─── Placeholder ──────────────────────────────────────────────────────────
+
   private void placeholder() {
     System.out.println("\n─── COMING SOON ─────────────────────────────────────────");
   }
-
 }
