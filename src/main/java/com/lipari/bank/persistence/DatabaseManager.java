@@ -80,8 +80,18 @@ public final class DatabaseManager {
         ON policies(customer_id)
         """;
 
-    try (Connection connection = getConnection();
-         Statement statement = connection.createStatement()) {
+    String riskScoresTable = """
+        CREATE TABLE IF NOT EXISTS risk_scores (
+           id BIGINT AUTO_INCREMENT PRIMARY KEY,
+           customer_id BIGINT NOT NULL,
+           score INT NOT NULL,
+           risk_level VARCHAR(20) NOT NULL,
+           calculated_at TIMESTAMP NOT NULL,
+           CONSTRAINT chk_risk_score CHECK (score BETWEEN 0 AND 100)
+          );
+        """;
+
+    try (Connection connection = getConnection(); Statement statement = connection.createStatement()) {
 
       statement.execute(customersTable);
       statement.execute(accountsTable);
@@ -91,6 +101,7 @@ public final class DatabaseManager {
       statement.execute(accountsIndex);
       statement.execute(transactionsIndex);
       statement.execute(policiesIndex);
+      statement.execute(riskScoresTable);
     }
   }
 }
