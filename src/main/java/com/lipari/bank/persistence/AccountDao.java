@@ -34,9 +34,12 @@ public class AccountDao {
             iban,
             account_type,
             balance,
-            customer_id
+            customer_id,
+            created_at,
+            overdraft_limit,
+            interest_rate
         )
-        VALUES (?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
         """;
 
     try (Connection connection = DatabaseManager.getConnection(); PreparedStatement statement = connection.prepareStatement(sql)) {
@@ -44,6 +47,18 @@ public class AccountDao {
       statement.setString(2, account.getClass().getSimpleName());
       statement.setBigDecimal(3, account.getBalance());
       statement.setLong(4, customerId);
+      statement.setObject(5, account.getCreationDate());
+
+      if (account instanceof CheckingAccount checkingAccount) {
+        statement.setBigDecimal(6, checkingAccount.getOverdraftLimit());
+        statement.setBigDecimal(7, null);
+      } else if (account instanceof SavingsAccount savingsAccount) {
+        statement.setBigDecimal(6, null);
+        statement.setBigDecimal(7, savingsAccount.getInterestRate());
+      } else {
+        statement.setBigDecimal(6, null);
+        statement.setBigDecimal(7, null);
+      }
 
       statement.executeUpdate();
     }
@@ -60,7 +75,13 @@ public class AccountDao {
    */
   public Optional<Account> findByIban(String iban) throws SQLException {
     String sql = """
-        SELECT iban, account_type, balance, customer_id
+        SELECT iban,
+               account_type,
+               balance,
+               customer_id,
+               created_at,
+               overdraft_limit,
+               interest_rate
         FROM accounts
         WHERE iban = ?
         """;
@@ -91,7 +112,13 @@ public class AccountDao {
    */
   public List<Account> findByCustomerId(Long customerId) throws SQLException {
     String sql = """
-        SELECT iban, account_type, balance, customer_id
+        SELECT iban,
+               account_type,
+               balance,
+               customer_id,
+               created_at,
+               overdraft_limit,
+               interest_rate
         FROM accounts
         WHERE customer_id = ?
         """;
@@ -161,7 +188,7 @@ public class AccountDao {
   /**
    * Maps a database row to the corresponding account subtype.
    *
-   * @param resultSet result set containing the account data
+   * @param resultSet result set containing account data
    * @param customer  account owner
    * @return mapped account
    * @throws SQLException if the account type is unknown or a column cannot be read
@@ -170,12 +197,13 @@ public class AccountDao {
     String accountType = resultSet.getString("account_type");
     String iban = resultSet.getString("iban");
     BigDecimal balance = resultSet.getBigDecimal("balance");
+    LocalDate creationDate = resultSet.getTimestamp("created_at").toLocalDateTime().toLocalDate();
 
     return switch (accountType) {
       case "CheckingAccount" ->
-          new CheckingAccount("DB-" + iban, LocalDate.now(), iban, balance, customer, BigDecimal.ZERO);
+          new CheckingAccount("DB-" + iban, creationDate, iban, balance, customer, resultSet.getBigDecimal("overdraft_limit"));
       case "SavingsAccount" ->
-          new SavingsAccount("DB-" + iban, LocalDate.now(), iban, balance, customer, BigDecimal.ZERO);
+          new SavingsAccount("DB-" + iban, creationDate, iban, balance, customer, resultSet.getBigDecimal("interest_rate"));
       default -> throw new SQLException("Unknown account type: " + accountType);
     };
   }

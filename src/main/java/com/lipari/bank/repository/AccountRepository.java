@@ -24,9 +24,9 @@ public class AccountRepository {
    * @return saved account
    */
   public Account save(Account account) {
-    accounts.put(account.getIban(), account);
-
+    accounts.put(normalizeIban(account.getIban()), account);
     return account;
+
   }
 
   /**
@@ -36,7 +36,7 @@ public class AccountRepository {
    * @return account if found, otherwise an empty optional
    */
   public Optional<Account> findByIban(String iban) {
-    return Optional.ofNullable(accounts.get(iban));
+    return Optional.ofNullable(accounts.get(normalizeIban(iban)));
   }
 
   /**
@@ -55,7 +55,7 @@ public class AccountRepository {
    * @return {@code true} if the account exists
    */
   public boolean existsByIban(String iban) {
-    return accounts.containsKey(iban);
+    return accounts.containsKey(normalizeIban(iban));
   }
 
   /**
@@ -65,7 +65,7 @@ public class AccountRepository {
    * @return {@code true} if an account was deleted
    */
   public boolean deleteByIban(String iban) {
-    return accounts.remove(iban) != null;
+    return accounts.remove(normalizeIban(iban)) != null;
   }
 
   /**
@@ -75,5 +75,9 @@ public class AccountRepository {
    */
   public int count() {
     return accounts.size();
+  }
+
+  private String normalizeIban(String iban) {
+    return iban.trim().toUpperCase();
   }
 }

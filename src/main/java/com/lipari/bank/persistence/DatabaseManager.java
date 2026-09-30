@@ -47,12 +47,14 @@ public final class DatabaseManager {
 
     String accountsTable = """
         CREATE TABLE IF NOT EXISTS accounts (
-            id            BIGINT AUTO_INCREMENT PRIMARY KEY,
-            iban          VARCHAR(34) NOT NULL UNIQUE,
-            account_type  VARCHAR(20) NOT NULL,
-            balance       DECIMAL(15,2) NOT NULL DEFAULT 0.00,
-            customer_id   BIGINT NOT NULL,
-            created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            id              BIGINT AUTO_INCREMENT PRIMARY KEY,
+            iban            VARCHAR(34) NOT NULL UNIQUE,
+            account_type    VARCHAR(20) NOT NULL,
+            balance         DECIMAL(15,2) NOT NULL DEFAULT 0.00,
+            customer_id     BIGINT NOT NULL,
+            created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            overdraft_limit DECIMAL(15,2),
+            interest_rate   DECIMAL(10,4),
             FOREIGN KEY (customer_id) REFERENCES customers(id)
         )
         """;
@@ -103,7 +105,8 @@ public final class DatabaseManager {
             score           INT NOT NULL,
             risk_level      VARCHAR(20) NOT NULL,
             calculated_at   TIMESTAMP NOT NULL,
-            CONSTRAINT chk_risk_score CHECK (score BETWEEN 0 AND 100)
+            CONSTRAINT chk_risk_score CHECK (score BETWEEN 0 AND 100),
+            FOREIGN KEY (customer_id) REFERENCES customers(id)
         )
         """;
 
@@ -114,7 +117,8 @@ public final class DatabaseManager {
             level        VARCHAR(20) NOT NULL,
             rule_name    VARCHAR(100) NOT NULL,
             message      VARCHAR(500) NOT NULL,
-            created_at   TIMESTAMP NOT NULL
+            created_at   TIMESTAMP NOT NULL,
+            FOREIGN KEY (customer_id) REFERENCES customers(id)
         )
         """;
 

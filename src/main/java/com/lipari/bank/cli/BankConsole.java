@@ -2,20 +2,19 @@ package com.lipari.bank.cli;
 
 import com.lipari.bank.compliance.ComplianceEngine;
 import com.lipari.bank.compliance.alert.Alert;
-
 import com.lipari.bank.compliance.rules.*;
 import com.lipari.bank.exception.AccountNotFoundException;
 import com.lipari.bank.exception.InsufficientFundsException;
-
 import com.lipari.bank.model.*;
+import com.lipari.bank.pattern.BankConfiguration;
 import com.lipari.bank.reporting.ComplianceReport;
 import com.lipari.bank.reporting.ComplianceReportService;
 import com.lipari.bank.repository.AccountRepository;
-
 import com.lipari.bank.risk.*;
 import com.lipari.bank.service.TransferService;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
@@ -44,18 +43,14 @@ public class BankConsole {
    */
   public BankConsole() {
     this.transferService = new TransferService(accountRepository);
-
     this.riskCalculationService = new RiskCalculationService(new PrivateCustomerScoringStrategy(), new BusinessCustomerScoringStrategy());
-
     this.parallelRiskCalculationService = new ParallelRiskCalculationService(riskCalculationService);
-
     List<ComplianceRule> complianceRules = List.of(new HighFrequencyTransferRule(), new LargeTransactionRule(), new DailyVolumeRule(), new NewCustomerHighValueRule());
 
     this.complianceEngine = new ComplianceEngine(complianceRules);
     this.complianceReportService = new ComplianceReportService();
-  }
 
-  // ─── Entry point ───────────────────────────────────────────────────────────
+  }
 
   /**
    * Starts the LipariBank console application.
@@ -67,8 +62,6 @@ public class BankConsole {
     console.initializeData();
     console.run();
   }
-
-  // ─── Main loop ─────────────────────────────────────────────────────────────
 
   private void run() {
     System.out.println("Benvenuto in LipariBank!");
@@ -86,7 +79,10 @@ public class BankConsole {
         case 4 -> makeWithdrawal();
         case 5 -> makeTransfer();
         case 6 -> showTransactions();
-        case 7, 8, 9, 10 -> placeholder();
+        case 7 -> showReporting();
+        case 8 -> showConfiguration();
+        case 9 -> applyInterest();
+        case 10 -> processAndClassifyAccounts();
         case 11 -> showRiskAndCompliance();
         case 0 -> {
           System.out.println("\nArrivederci da LipariBank!");
@@ -95,11 +91,18 @@ public class BankConsole {
         default -> System.out.println("⚠ Input non valido!");
       }
     }
+
   }
 
-  // ─── Inizializzazione dati ─────────────────────────────────────────────────
-
   private void initializeData() {
+
+    BankConfiguration configuration = BankConfiguration.getInstance();
+
+    configuration.setDailyTransferLimit(new BigDecimal("10000"));
+    configuration.setMaxOverdraftLimit(new BigDecimal("500"));
+    configuration.setMinAgeForLifeInsurance(18);
+    configuration.setBankName("LipariBank");
+
     Customer mario = new Customer("RSSMRA80A01H501X", "Mario", "Rossi", CustomerType.PRIVATE, LocalDate.now().minusYears(2));
     mario.setId(1L);
 
@@ -112,9 +115,8 @@ public class BankConsole {
 
     accountRepository.save(marioAccount);
     accountRepository.save(lauraAccount);
-  }
 
-  // ─── Menu ──────────────────────────────────────────────────────────────────
+  }
 
   private void printMenu() {
     System.out.println("""
@@ -136,23 +138,22 @@ public class BankConsole {
         ║  0. Esci                             ║
         ╚══════════════════════════════════════╝""");
     System.out.print("  Scelta: ");
+
   }
 
-  // ─── Input helper ──────────────────────────────────────────────────────────
-
   /**
-   * Legge un intero da console.
+   * Reads an integer from the console.
    *
-   * @return valore intero inserito dall'utente, oppure -1 se non valido
+   * @return entered integer, or -1 when the input is invalid
    */
   private int readIntSafe() {
     String input = scanner.nextLine().trim();
-
     try {
       return Integer.parseInt(input);
     } catch (NumberFormatException e) {
       return -1;
     }
+
   }
 
   private BigDecimal readBigDecimalSafe() {
@@ -163,9 +164,8 @@ public class BankConsole {
     } catch (NumberFormatException e) {
       return BigDecimal.valueOf(-1);
     }
-  }
 
-  // ─── Operazioni sui conti ──────────────────────────────────────────────────
+  }
 
   private void listAccounts() {
     System.out.println("\n─── CONTI ───────────────────────────────────────────────");
@@ -173,6 +173,7 @@ public class BankConsole {
     for (Account account : accountRepository.findAll()) {
       System.out.println("IBAN: " + account.getIban() + " | Titolare: " + account.getOwner().getFirstName() + " " + account.getOwner().getLastName() + " | Saldo: " + account.getBalance());
     }
+
   }
 
   private void showBalance() {
@@ -183,10 +184,10 @@ public class BankConsole {
       Account account = accountRepository.findByIban(iban).orElseThrow(() -> new AccountNotFoundException(iban));
 
       System.out.println("Saldo: " + account.getBalance());
-
     } catch (AccountNotFoundException e) {
       System.out.println("⚠ " + e.getMessage());
     }
+
   }
 
   private void makeDeposit() {
@@ -203,10 +204,10 @@ public class BankConsole {
 
       System.out.println("Deposito effettuato.");
       System.out.println("Nuovo saldo: " + account.getBalance());
-
     } catch (AccountNotFoundException | IllegalArgumentException e) {
       System.out.println("⚠ " + e.getMessage());
     }
+
   }
 
   private void makeWithdrawal() {
@@ -223,10 +224,10 @@ public class BankConsole {
 
       System.out.println("Prelievo effettuato.");
       System.out.println("Nuovo saldo: " + account.getBalance());
-
     } catch (AccountNotFoundException | InsufficientFundsException | IllegalArgumentException e) {
       System.out.println("⚠ " + e.getMessage());
     }
+
   }
 
   private void makeTransfer() {
@@ -250,10 +251,10 @@ public class BankConsole {
 
       System.out.println("Saldo sorgente: " + source.getBalance());
       System.out.println("Saldo destinatario: " + target.getBalance());
-
     } catch (AccountNotFoundException | InsufficientFundsException | IllegalArgumentException e) {
       System.out.println("⚠ " + e.getMessage());
     }
+
   }
 
   private void showTransactions() {
@@ -273,13 +274,117 @@ public class BankConsole {
       for (Transaction transaction : account.getTransactions()) {
         System.out.println(transaction.timestamp() + " | " + transaction.type() + " | " + transaction.amount() + " | " + transaction.description());
       }
-
     } catch (AccountNotFoundException e) {
       System.out.println("⚠ " + e.getMessage());
     }
+
   }
 
-  // ─── Risk & Compliance ────────────────────────────────────────────────────
+  private void showReporting() {
+    System.out.println("\n─── REPORTISTICA ───────────────────────────────────────");
+
+    List<Account> accounts = accountRepository.findAll();
+
+    if (accounts.isEmpty()) {
+      System.out.println("Nessun dato disponibile.");
+      return;
+    }
+
+    BigDecimal totalBalance = accounts.stream().map(Account::getBalance).reduce(BigDecimal.ZERO, BigDecimal::add);
+
+    BigDecimal averageBalance = totalBalance.divide(BigDecimal.valueOf(accounts.size()), 2, RoundingMode.HALF_UP);
+
+    Map<CustomerType, Long> customersByType = accounts.stream().map(Account::getOwner).distinct().collect(Collectors.groupingBy(Customer::getCustomerType, Collectors.counting()));
+
+    Map<String, Long> accountsByType = accounts.stream().collect(Collectors.groupingBy(account -> switch (account) {
+      case CheckingAccount checkingAccount -> "CHECKING";
+      case SavingsAccount savingsAccount -> "SAVINGS";
+      default -> "UNKNOWN";
+    }, Collectors.counting()));
+
+    long totalTransactions = accounts.stream().mapToLong(account -> account.getTransactions().size()).sum();
+
+    System.out.println("\nNumero conti: " + accounts.size());
+    System.out.println("Saldo complessivo: " + totalBalance);
+    System.out.println("Saldo medio: " + averageBalance);
+    System.out.println("Numero transazioni: " + totalTransactions);
+
+    System.out.println("\nClienti per tipologia:");
+
+    customersByType.forEach((type, count) -> System.out.println(type + " -> " + count));
+
+    System.out.println("\nConti per tipologia:");
+
+    accountsByType.forEach((type, count) -> System.out.println(type + " -> " + count));
+
+  }
+
+  private void showConfiguration() {
+    BankConfiguration configuration = BankConfiguration.getInstance();
+
+    System.out.println("\n─── CONFIGURAZIONE ─────────────────────────────────────");
+    System.out.println("Limite trasferimenti giornaliero: " + configuration.getDailyTransferLimit());
+    System.out.println("Massimo scoperto: " + configuration.getMaxOverdraftLimit());
+    System.out.println("Età minima assicurazione vita: " + configuration.getMinAgeForLifeInsurance());
+    System.out.println("Nome banca: " + configuration.getBankName());
+
+  }
+
+  private void applyInterest() {
+    System.out.println("\n─── APPLICA INTERESSI ──────────────────────────────────");
+
+    List<SavingsAccount> savingsAccounts = accountRepository.findAll().stream().filter(SavingsAccount.class::isInstance).map(SavingsAccount.class::cast).toList();
+
+    if (savingsAccounts.isEmpty()) {
+      System.out.println("Nessun conto di risparmio disponibile.");
+      return;
+    }
+
+    for (SavingsAccount account : savingsAccounts) {
+      BigDecimal previousBalance = account.getBalance();
+      account.applyInterest();
+
+      System.out.println("IBAN: " + account.getIban() + " | Saldo precedente: " + previousBalance + " | Nuovo saldo: " + account.getBalance());
+    }
+
+  }
+
+  private void processAndClassifyAccounts() {
+    System.out.println("\n─── PROCESSA E CLASSIFICA CONTI ────────────────────────");
+
+    List<Account> accounts = accountRepository.findAll();
+
+    if (accounts.isEmpty()) {
+      System.out.println("Nessun conto disponibile.");
+      return;
+    }
+
+    Map<String, List<Account>> accountsByClassification = accounts.stream().collect(Collectors.groupingBy(this::classifyAccount));
+
+    accountsByClassification.forEach((classification, classifiedAccounts) -> {
+      System.out.println("\n" + classification + ":");
+
+      classifiedAccounts.forEach(account -> System.out.println("IBAN: " + account.getIban() + " | Titolare: " + account.getOwner().getFirstName() + " " + account.getOwner().getLastName() + " | Saldo: " + account.getBalance()));
+    });
+
+  }
+
+  private String classifyAccount(Account account) {
+    if (account instanceof SavingsAccount) {
+      return "CONTO RISPARMIO";
+    }
+
+    if (account instanceof CheckingAccount checkingAccount) {
+      if (checkingAccount.getBalance().compareTo(BigDecimal.ZERO) < 0) {
+        return "CONTO CORRENTE IN SCOPERTO";
+      }
+
+      return "CONTO CORRENTE";
+    }
+
+    return "ALTRO";
+
+  }
 
   private void showRiskAndCompliance() {
     System.out.println("\n─── RISK & COMPLIANCE ─────────────────────────────────");
@@ -329,11 +434,6 @@ public class BankConsole {
     } else {
       report.customersToFlag().forEach(riskScore -> System.out.println("Customer " + riskScore.customerId() + " -> " + riskScore.score()));
     }
-  }
 
-  // ─── Placeholder ──────────────────────────────────────────────────────────
-
-  private void placeholder() {
-    System.out.println("\n─── COMING SOON ─────────────────────────────────────────");
   }
 }

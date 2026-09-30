@@ -26,7 +26,6 @@ public class ConcurrentBatchService {
     ExecutorService executor = Executors.newFixedThreadPool(4);
     AtomicInteger completed = new AtomicInteger();
     List<Future<?>> futures = new ArrayList<>();
-
     long start = System.nanoTime();
 
     try {
@@ -55,7 +54,9 @@ public class ConcurrentBatchService {
     } catch (ExecutionException exception) {
       executor.shutdownNow();
 
-      throw new BankException("Batch transfer execution failed", "BATCH_EXECUTION_FAILED");
+      BankException batchException = new BankException("Batch transfer execution failed", "BATCH_EXECUTION_FAILED");
+      batchException.initCause(exception.getCause());
+      throw batchException;
     } finally {
       if (!executor.isTerminated()) {
         executor.shutdownNow();
