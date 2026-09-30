@@ -5,19 +5,14 @@ import java.time.LocalDateTime;
 /**
  * Represents a risk score calculated for a customer.
  *
- * @param customerId identifier of the customer
- * @param score risk score between 0 and 100
- * @param level risk level associated with the score
+ * @param customerId   identifier of the customer
+ * @param score        risk score between 0 and 100
+ * @param level        risk level associated with the score
  * @param calculatedAt date and time when the score was calculated
  * @author Valerio
  * @since 1.0
  */
-public record RiskScore(
-    Long customerId,
-    int score,
-    RiskLevel level,
-    LocalDateTime calculatedAt
-) {
+public record RiskScore(Long customerId, int score, RiskLevel level, LocalDateTime calculatedAt) {
 
   public RiskScore {
     if (customerId == null) {

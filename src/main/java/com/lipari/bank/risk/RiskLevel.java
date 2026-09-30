@@ -7,8 +7,5 @@ package com.lipari.bank.risk;
  * @since 1.0
  */
 public enum RiskLevel {
-  LOW,
-  MEDIUM,
-  HIGH,
-  CRITICAL
+  LOW, MEDIUM, HIGH, CRITICAL
 }
