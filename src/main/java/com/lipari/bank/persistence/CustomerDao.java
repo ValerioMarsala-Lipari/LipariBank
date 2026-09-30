@@ -17,9 +17,10 @@ public class CustomerDao {
             fiscal_code,
             first_name,
             last_name,
-            customer_type
+            customer_type,
+            created_at,
         )
-        VALUES (?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?)
         """;
 
     try (Connection connection = DatabaseManager.getConnection(); PreparedStatement statement = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
@@ -28,6 +29,7 @@ public class CustomerDao {
       statement.setString(2, customer.getFirstName());
       statement.setString(3, customer.getLastName());
       statement.setString(4, customer.getCustomerType().name());
+      statement.setObject(5, customer.getCreatedAt());
 
       statement.executeUpdate();
 
