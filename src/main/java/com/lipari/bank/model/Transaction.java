@@ -3,13 +3,23 @@ package com.lipari.bank.model;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-public record Transaction(
-    TransactionType type,
-    BigDecimal amount,
-    String description,
-    LocalDateTime timestamp
-) {
+/**
+ * Represents a financial transaction performed on an account.
+ *
+ * @param type        transaction type
+ * @param amount      transaction amount
+ * @param description transaction description
+ * @param timestamp   date and time when the transaction occurred
+ * @author Valerio
+ * @since 1.0
+ */
+public record Transaction(TransactionType type, BigDecimal amount, String description, LocalDateTime timestamp) {
 
+  /**
+   * Validates the transaction components.
+   *
+   * @throws IllegalArgumentException if any required value is invalid
+   */
   public Transaction {
     if (type == null) {
       throw new IllegalArgumentException("Transaction type cannot be null");

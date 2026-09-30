@@ -4,6 +4,16 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 
+/**
+ * Represents an insurance policy associated with a customer.
+ *
+ * <p>A policy has a premium, coverage amount, validity period, deductible
+ * and status. The applicable tax is calculated as a percentage of the
+ * policy premium.</p>
+ *
+ * @author Valerio
+ * @since 1.0
+ */
 public class Policy extends FinancialProduct implements Taxable {
 
   private final String policyType;
@@ -15,6 +25,22 @@ public class Policy extends FinancialProduct implements Taxable {
   private final BigDecimal deductible;
   private PolicyStatus status;
 
+  /**
+   * Creates a policy with the specified details.
+   *
+   * @param id             unique product identifier
+   * @param creationDate   policy creation date
+   * @param policyType     type of insurance policy
+   * @param holder         customer who holds the policy
+   * @param premium        policy premium
+   * @param coverageAmount maximum coverage amount
+   * @param startDate      policy start date
+   * @param expirationDate policy expiration date
+   * @param deductible     policy deductible amount
+   * @param status         current policy status
+   * @throws IllegalArgumentException if a required value is null, blank,
+   *                                  non-positive or otherwise invalid
+   */
   public Policy(String id, LocalDate creationDate, String policyType, Customer holder, BigDecimal premium, BigDecimal coverageAmount, LocalDate startDate, LocalDate expirationDate, BigDecimal deductible, PolicyStatus status) {
     super(id, creationDate);
 
@@ -64,38 +90,84 @@ public class Policy extends FinancialProduct implements Taxable {
     this.status = status;
   }
 
+  /**
+   * Returns the type of this policy.
+   *
+   * @return policy type
+   */
   public String getPolicyType() {
     return policyType;
   }
 
+  /**
+   * Returns the customer who holds this policy.
+   *
+   * @return policy holder
+   */
   public Customer getHolder() {
     return holder;
   }
 
+  /**
+   * Returns the policy premium.
+   *
+   * @return policy premium
+   */
   public BigDecimal getPremium() {
     return premium;
   }
 
+  /**
+   * Returns the maximum amount covered by the policy.
+   *
+   * @return coverage amount
+   */
   public BigDecimal getCoverageAmount() {
     return coverageAmount;
   }
 
+  /**
+   * Returns the policy start date.
+   *
+   * @return policy start date
+   */
   public LocalDate getStartDate() {
     return startDate;
   }
 
+  /**
+   * Returns the policy expiration date.
+   *
+   * @return policy expiration date
+   */
   public LocalDate getExpirationDate() {
     return expirationDate;
   }
 
+  /**
+   * Returns the policy deductible.
+   *
+   * @return deductible amount
+   */
   public BigDecimal getDeductible() {
     return deductible;
   }
 
+  /**
+   * Returns the current policy status.
+   *
+   * @return policy status
+   */
   public PolicyStatus getStatus() {
     return status;
   }
 
+  /**
+   * Updates the policy status.
+   *
+   * @param status new policy status
+   * @throws IllegalArgumentException if the status is null
+   */
   public void setStatus(PolicyStatus status) {
     if (status == null) {
       throw new IllegalArgumentException("Policy status cannot be null");
@@ -104,14 +176,38 @@ public class Policy extends FinancialProduct implements Taxable {
     this.status = status;
   }
 
+  /**
+   * Calculates the tax applicable to this policy.
+   *
+   * @return calculated tax amount
+   */
   @Override
   public BigDecimal calculateTax() {
     return calculateTaxAmount();
   }
 
+  /**
+   * Calculates the tax amount as 10% of the policy premium.
+   *
+   * @return calculated tax amount
+   */
   @Override
   public BigDecimal calculateTaxAmount() {
-    // Esempio: 10% del premio
     return premium.multiply(new BigDecimal("0.10")).setScale(2, RoundingMode.HALF_UP);
+  }
+
+  /**
+   * Determines whether the policy is currently active.
+   *
+   * <p>A policy is active when its status is {@link PolicyStatus#ACTIVE},
+   * its start date has been reached and its expiration date has not yet
+   * been reached.</p>
+   *
+   * @return {@code true} if the policy is currently active
+   */
+  public boolean isActive() {
+    LocalDate today = LocalDate.now();
+
+    return status == PolicyStatus.ACTIVE && !startDate.isAfter(today) && expirationDate.isAfter(today);
   }
 }
